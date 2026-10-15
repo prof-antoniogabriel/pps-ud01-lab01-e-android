@@ -1,0 +1,7 @@
+# Android Studio suele crear sdk.dir automáticamente en local.properties.
+sdk.dir=/ruta/a/Android/Sdk
+
+# Configuración de ejemplo para el laboratorio.
+APP_ENV=development
+API_BASE_URL=https://api.example.test
+DEMO_API_KEY=replace-me

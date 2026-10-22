@@ -36,14 +36,16 @@ Tu objetivo no es aprender Android en profundidad ni modificar la aplicación. D
 
 Para realizar el laboratorio necesitas:
 
-- JDK 17 o superior;
-- Android SDK;
-- Android SDK Platform 35;
-- Android Command-line Tools;
-- Android Emulator;
-- una imagen de sistema Android;
+- **JDK 17**.
+- **Android SDK**.
+- **Android SDK Platform 35**.
+- **Android SDK Build Tools 35.0.0**.
+- **Android SDK Platform Tools**.
+- **Android Command-line Tools**.
+- **Android Emulator**.
+- una **imagen de sistema Android 35**;
 - `adb`;
-- opcionalmente Android Studio.
+- opcionalmente **Android Studio**.
 
 En Ubuntu puedes instalar inicialmente:
 
@@ -51,22 +53,22 @@ En Ubuntu puedes instalar inicialmente:
 sudo apt update
 
 sudo apt install android-sdk
-sudo apt install google-android-emulator-installer
 sudo apt install google-android-cmdline-tools-13.0-installer
 ```
 
-Instalar Android Studio:
+El emulador se instalará posteriormente mediante `sdkmanager` dentro del SDK personal del usuario.
+
+Opcionalmente puedes instalar Android Studio:
 
 ```bash
 sudo snap install android-studio --classic
 ```
 
-Comprueba las herramientas:
+Comprueba inicialmente las herramientas disponibles:
 
 ```bash
 java -version
 adb version
-emulator -version
 sdkmanager --version
 avdmanager --version
 ```
@@ -74,8 +76,8 @@ avdmanager --version
 También puedes comprobar su ubicación:
 
 ```bash
+which java
 which adb
-which emulator
 which sdkmanager
 which avdmanager
 ```
@@ -90,7 +92,7 @@ En algunos sistemas Ubuntu, el SDK instalado mediante paquetes se encuentra en:
 /usr/lib/android-sdk
 ```
 
-Sin embargo, esa ubicación pertenece al sistema y puede generar problemas de permisos al instalar nuevas imágenes.
+Sin embargo, esa ubicación pertenece al sistema y puede generar problemas de permisos al instalar nuevas plataformas, imágenes o componentes.
 
 Para este laboratorio utilizaremos un SDK dentro del directorio personal del usuario:
 
@@ -101,21 +103,26 @@ mkdir -p "$HOME/Android/Sdk"
 Configura las variables de entorno:
 
 ```bash
-export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
 export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
 ```
 
-Añade las herramientas al `PATH`:
+`ANDROID_HOME` será la ubicación principal del SDK.
+
+Se mantiene también `ANDROID_SDK_ROOT` apuntando al mismo directorio para evitar problemas de compatibilidad con determinadas herramientas.
+
+Añade al `PATH` las herramientas que se instalarán dentro del SDK:
 
 ```bash
-export PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
+export PATH="$ANDROID_HOME/platform-tools:$PATH"
+export PATH="$ANDROID_HOME/emulator:$PATH"
 ```
 
 Comprueba:
 
 ```bash
-echo $ANDROID_SDK_ROOT
 echo $ANDROID_HOME
+echo $ANDROID_SDK_ROOT
 ```
 
 Deberías obtener una ruta similar a:
@@ -124,46 +131,127 @@ Deberías obtener una ruta similar a:
 /home/usuario/Android/Sdk
 ```
 
-Para hacer permanente esta configuración puedes añadir al final de `~/.bashrc`:
+Para hacer permanente esta configuración, añade al final de:
 
-```bash
-export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
-export ANDROID_HOME="$HOME/Android/Sdk"
-export PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
+```text
+~/.bashrc
 ```
 
-Después recarga:
+lo siguiente:
+
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+
+export PATH="$ANDROID_HOME/platform-tools:$PATH"
+export PATH="$ANDROID_HOME/emulator:$PATH"
+```
+
+Después recarga la configuración:
 
 ```bash
 source ~/.bashrc
+```
+
+Comprueba de nuevo:
+
+```bash
+echo $ANDROID_HOME
+echo $ANDROID_SDK_ROOT
 ```
 
 ---
 
 # 3. Instalar Android SDK 35
 
-Instala los componentes necesarios:
+Instala todos los componentes necesarios para construir y ejecutar la aplicación:
 
 ```bash
 sdkmanager \
-  --sdk_root="$HOME/Android/Sdk" \
+  --sdk_root="$ANDROID_HOME" \
   "platform-tools" \
   "platforms;android-35" \
+  "build-tools;35.0.0" \
+  "emulator" \
   "system-images;android-35;google_apis;x86_64"
+```
+
+Con este comando se instalan:
+
+```text
+platform-tools
+      ↓
+adb y herramientas de comunicación con dispositivos
+
+platforms;android-35
+      ↓
+API Android 35 utilizada para compilar
+
+build-tools;35.0.0
+      ↓
+herramientas utilizadas para construir el APK
+
+emulator
+      ↓
+emulador Android
+
+system-images
+      ↓
+sistema Android que ejecutará el dispositivo virtual
 ```
 
 Acepta las licencias:
 
 ```bash
 yes | sdkmanager \
-  --sdk_root="$HOME/Android/Sdk" \
+  --sdk_root="$ANDROID_HOME" \
   --licenses
 ```
 
-Comprueba que la imagen de sistema se ha instalado:
+---
+
+## Comprobar la instalación
+
+Comprueba las plataformas instaladas:
 
 ```bash
-find "$HOME/Android/Sdk/system-images" \
+ls "$ANDROID_HOME/platforms"
+```
+
+Debería aparecer:
+
+```text
+android-35
+```
+
+Comprueba los Build Tools:
+
+```bash
+ls "$ANDROID_HOME/build-tools"
+```
+
+Debería aparecer:
+
+```text
+35.0.0
+```
+
+Puedes comprobar directamente algunas de las herramientas instaladas:
+
+```bash
+"$ANDROID_HOME/build-tools/35.0.0/aapt2" version
+```
+
+y:
+
+```bash
+"$ANDROID_HOME/build-tools/35.0.0/apksigner" version
+```
+
+Comprueba también la imagen del sistema:
+
+```bash
+find "$ANDROID_HOME/system-images" \
   -maxdepth 4 \
   -type d
 ```
@@ -172,6 +260,12 @@ Deberías localizar una ruta similar a:
 
 ```text
 /home/usuario/Android/Sdk/system-images/android-35/google_apis/x86_64
+```
+
+Finalmente comprueba el emulador:
+
+```bash
+emulator -version
 ```
 
 ---
@@ -192,6 +286,12 @@ Ejecuta:
 avdmanager create avd \
   -n PPS_API_35 \
   -k "system-images;android-35;google_apis;x86_64"
+```
+
+Si pregunta si deseas crear un perfil de hardware personalizado puedes responder:
+
+```text
+no
 ```
 
 Comprueba los dispositivos virtuales disponibles:
@@ -216,7 +316,7 @@ Arranca el dispositivo virtual:
 emulator -avd PPS_API_35
 ```
 
-Espera hasta que Android termine de iniciar.
+Espera hasta que Android termine completamente de iniciar.
 
 En otra terminal comprueba que `adb` detecta el emulador:
 
@@ -237,7 +337,14 @@ Antes de continuar debe aparecer al menos un dispositivo con estado:
 device
 ```
 
-No debe aparecer vacío, `offline` o `unauthorized`.
+No debe aparecer:
+
+```text
+offline
+unauthorized
+```
+
+ni una lista vacía.
 
 ---
 
@@ -277,7 +384,7 @@ como referencia.
 
 `local.properties` está excluido de Git y no debe contener credenciales reales que se suban al repositorio.
 
-> Importante: aunque una clave se introduzca desde `local.properties`, si posteriormente se incorpora a `BuildConfig`, quedará empaquetada dentro de la aplicación. Por tanto, una API key no puede considerarse secreta únicamente porque no esté almacenada en Git.
+> **Importante:** aunque una clave se introduzca desde `local.properties`, si posteriormente se incorpora a `BuildConfig`, quedará empaquetada dentro de la aplicación. Por tanto, una API key no puede considerarse secreta únicamente porque no esté almacenada en Git.
 
 Los secretos reales deberían mantenerse en servicios backend o sustituirse por credenciales temporales y mecanismos adecuados de autenticación.
 
@@ -285,9 +392,15 @@ Los secretos reales deberían mantenerse en servicios backend o sustituirse por 
 
 # 7. Compatibilidad Java / Kotlin
 
-El proyecto debe compilar Java y Kotlin utilizando una versión compatible.
+El proyecto debe compilar Java y Kotlin utilizando versiones compatibles.
 
-En `app/build.gradle.kts` debe aparecer una configuración similar a:
+En:
+
+```text
+app/build.gradle.kts
+```
+
+debe aparecer una configuración similar a:
 
 ```kotlin
 compileOptions {
@@ -309,15 +422,41 @@ compileDebugKotlin       -> 21
 
 Java y Kotlin deben generar bytecode compatible.
 
-Comprueba también:
+Comprueba también la versión de Java:
 
 ```bash
 java -version
 ```
 
+Para este laboratorio se utilizará:
+
+```text
+JDK 17
+```
+
 ---
 
 # 8. Construcción de la aplicación
+
+Antes de construir comprueba que el SDK está disponible:
+
+```bash
+echo $ANDROID_HOME
+```
+
+y que existen los componentes requeridos:
+
+```bash
+ls "$ANDROID_HOME/platforms"
+ls "$ANDROID_HOME/build-tools"
+```
+
+Deberías encontrar:
+
+```text
+android-35
+35.0.0
+```
 
 Desde la raíz del proyecto limpia primero compilaciones anteriores:
 
@@ -349,6 +488,12 @@ Compruébalo:
 ls -lh app/build/outputs/apk/debug/
 ```
 
+Deberías encontrar:
+
+```text
+app-debug.apk
+```
+
 ---
 
 # 9. Pruebas unitarias
@@ -369,6 +514,12 @@ Puedes comprobar los ficheros generados con:
 
 ```bash
 ls app/build/test-results/testDebugUnitTest/
+```
+
+También puedes consultar los informes HTML generados por Gradle en:
+
+```text
+app/build/reports/tests/testDebugUnitTest/
 ```
 
 ---
@@ -407,7 +558,7 @@ La opción:
 -r
 ```
 
-permite reinstalar o actualizar una aplicación ya existente.
+permite reinstalar o actualizar una aplicación que ya se encuentre instalada.
 
 ---
 
@@ -424,6 +575,19 @@ Resultado esperado:
 
 ```text
 package:org.iesalixar.pps.radiografia
+```
+
+También puedes contar automáticamente las coincidencias:
+
+```bash
+adb shell pm list packages \
+  | grep -c '^package:org.iesalixar.pps.radiografia$'
+```
+
+Resultado esperado:
+
+```text
+1
 ```
 
 ---
@@ -449,6 +613,8 @@ Con la aplicación arrancada:
 adb shell pidof \
   org.iesalixar.pps.radiografia
 ```
+
+Deberías obtener un número correspondiente al PID del proceso.
 
 Si quieres comprobar automáticamente que existe un proceso:
 
@@ -478,6 +644,13 @@ adb shell run-as \
   id
 ```
 
+Obtendrás información similar a:
+
+```text
+uid=10xxx(...)
+gid=10xxx(...)
+```
+
 También puedes consultar el UID asignado:
 
 ```bash
@@ -487,6 +660,16 @@ adb shell dumpsys package \
 ```
 
 Esto permite observar uno de los mecanismos básicos de aislamiento de aplicaciones Android.
+
+La aplicación:
+
+```text
+no se ejecuta como root
+        ↓
+Android le asigna un UID
+        ↓
+ese UID forma parte del sandbox de la aplicación
+```
 
 ---
 
@@ -529,10 +712,13 @@ Durante el laboratorio debes ser capaz de responder preguntas como:
 - ¿Cuál es la actividad principal?
 - ¿Cómo se genera el APK?
 - ¿Dónde queda almacenado?
+- ¿Qué Android SDK utiliza?
+- ¿Qué Build Tools necesita?
 - ¿Cómo se instala?
 - ¿Cómo se identifica su proceso?
 - ¿Qué datos se introducen en `BuildConfig`?
 - ¿Qué configuraciones de seguridad aparecen en `AndroidManifest.xml`?
+- ¿Con qué usuario se ejecuta la aplicación?
 
 ---
 
@@ -546,10 +732,57 @@ Comprueba:
 adb devices
 ```
 
-Si no aparece ningún dispositivo, arranca el emulador:
+Si no aparece ningún dispositivo, comprueba primero los AVD disponibles:
+
+```bash
+emulator -list-avds
+```
+
+Después arranca el emulador:
 
 ```bash
 emulator -avd PPS_API_35
+```
+
+Espera a que Android haya arrancado y vuelve a ejecutar:
+
+```bash
+adb devices
+```
+
+---
+
+## `emulator: command not found`
+
+Comprueba:
+
+```bash
+echo $ANDROID_HOME
+```
+
+y:
+
+```bash
+ls "$ANDROID_HOME/emulator"
+```
+
+Asegúrate también de tener en el `PATH`:
+
+```bash
+export PATH="$ANDROID_HOME/emulator:$PATH"
+```
+
+Recarga:
+
+```bash
+source ~/.bashrc
+```
+
+Comprueba:
+
+```bash
+which emulator
+emulator -version
 ```
 
 ---
@@ -559,28 +792,35 @@ emulator -avd PPS_API_35
 Comprueba:
 
 ```bash
+echo $ANDROID_HOME
 echo $ANDROID_SDK_ROOT
 ```
 
-Debe apuntar a:
+Ambos deben apuntar a:
 
 ```text
 $HOME/Android/Sdk
 ```
 
-Comprueba también que exista:
+Comprueba también que exista la imagen:
 
 ```bash
-find "$HOME/Android/Sdk/system-images" \
+find "$ANDROID_HOME/system-images" \
   -maxdepth 4 \
   -type d
+```
+
+Debería existir una ruta similar a:
+
+```text
+$HOME/Android/Sdk/system-images/android-35/google_apis/x86_64
 ```
 
 ---
 
 ## `sdkmanager: Failed to read or create install properties file`
 
-No instales las nuevas imágenes dentro de:
+No instales las nuevas plataformas, imágenes y Build Tools dentro de:
 
 ```text
 /usr/lib/android-sdk
@@ -596,8 +836,62 @@ y ejecuta:
 
 ```bash
 sdkmanager \
-  --sdk_root="$HOME/Android/Sdk" \
+  --sdk_root="$ANDROID_HOME" \
   ...
+```
+
+---
+
+## Error: Android SDK Build Tools no encontrado
+
+Comprueba:
+
+```bash
+ls "$ANDROID_HOME/build-tools"
+```
+
+Debería aparecer:
+
+```text
+35.0.0
+```
+
+Si no existe, instala los Build Tools:
+
+```bash
+sdkmanager \
+  --sdk_root="$ANDROID_HOME" \
+  "build-tools;35.0.0"
+```
+
+Comprueba después:
+
+```bash
+"$ANDROID_HOME/build-tools/35.0.0/aapt2" version
+```
+
+---
+
+## Error: Android Platform 35 no encontrada
+
+Comprueba:
+
+```bash
+ls "$ANDROID_HOME/platforms"
+```
+
+Debería aparecer:
+
+```text
+android-35
+```
+
+Si no aparece:
+
+```bash
+sdkmanager \
+  --sdk_root="$ANDROID_HOME" \
+  "platforms;android-35"
 ```
 
 ---
@@ -611,7 +905,13 @@ compileDebugJavaWithJavac (1.8)
 compileDebugKotlin (21)
 ```
 
-comprueba en `app/build.gradle.kts`:
+comprueba en:
+
+```text
+app/build.gradle.kts
+```
+
+que exista:
 
 ```kotlin
 compileOptions {
@@ -633,19 +933,69 @@ Después:
 
 ---
 
-## Comprobación rápida del entorno
+# Comprobación rápida del entorno
 
-Antes de comenzar puedes ejecutar:
+Antes de comenzar el laboratorio puedes ejecutar:
 
 ```bash
 java -version
+
+echo "ANDROID_HOME=$ANDROID_HOME"
+echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+
 adb version
 sdkmanager --version
 avdmanager --version
 emulator -version
-echo $ANDROID_SDK_ROOT
+
+echo "=== Android Platforms ==="
+ls "$ANDROID_HOME/platforms"
+
+echo "=== Android Build Tools ==="
+ls "$ANDROID_HOME/build-tools"
+
+echo "=== System Images ==="
+find "$ANDROID_HOME/system-images" \
+  -maxdepth 4 \
+  -type d
+
+echo "=== AVD disponibles ==="
 emulator -list-avds
+
+echo "=== Dispositivos detectados ==="
 adb devices
 ```
 
-Si todas las herramientas funcionan y `adb devices` muestra un dispositivo, el entorno está preparado para realizar el laboratorio.
+El entorno estará correctamente preparado cuando puedas comprobar:
+
+```text
+JDK 17
+      ✓
+
+Android SDK
+      ✓
+
+Platform android-35
+      ✓
+
+Build Tools 35.0.0
+      ✓
+
+Platform Tools / adb
+      ✓
+
+Android Emulator
+      ✓
+
+Imagen android-35/google_apis/x86_64
+      ✓
+
+AVD PPS_API_35
+      ✓
+
+adb devices
+      ↓
+emulator-5554    device
+```
+
+Una vez completadas estas comprobaciones puedes comenzar con la construcción, pruebas e instalación de la aplicación.
